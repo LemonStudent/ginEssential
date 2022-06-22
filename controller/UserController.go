@@ -2,6 +2,7 @@ package controller
 
 import (
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"net/http"
 	"orangezoom.cn/ginessential/common"
@@ -9,6 +10,7 @@ import (
 	"orangezoom.cn/ginessential/util"
 )
 
+// Register 用户注册
 func Register(c *gin.Context) {
 	DB := common.GetDB()
 	// 获取参数
@@ -39,9 +41,15 @@ func Register(c *gin.Context) {
 	}
 
 	// 创建用户
+	encryptionPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 
-	var user = model.User{Name: name, Telephone: telephone, Password: password}
-	DB.Create(user)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 500, "msg": "密码加密异常"})
+		return
+	}
+
+	var user = model.User{Name: name, Telephone: telephone, Password: string(encryptionPassword)}
+	DB.Create(&user)
 
 	//返回结果
 
@@ -49,6 +57,39 @@ func Register(c *gin.Context) {
 		"msg": "注册成功",
 	})
 }
+
+// Login 用户登录
+func Login(c *gin.Context) {
+	DB := common.GetDB()
+	// 获取参数
+	telephone := c.PostForm("telephone")
+	password := c.PostForm("password")
+
+	var user model.User
+
+	DB.Where("telephone = ?", telephone).First(&user)
+
+	if user.ID == 0 {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"code": 422, "msg": "手机号不存在"})
+		return
+	}
+
+	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 422, "msg": "密码错误"})
+		return
+	}
+
+	token := "token"
+
+	c.JSON(
+		http.StatusOK,
+		gin.H{
+			"code": 200,
+			"msg":  "登陆成功",
+			"data": gin.H{"token": token}})
+}
+
 func isTelephoneExist(db *gorm.DB, telephone string) bool {
 
 	var user model.User
