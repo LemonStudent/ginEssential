@@ -1,0 +1,9 @@
+server:
+  port: 1016
+database:
+  host: "127.0.0.1"
+  port: "3306"
+  database: "essential"
+  username: "root"
+  password: "root"
+  charset: "utf8"
