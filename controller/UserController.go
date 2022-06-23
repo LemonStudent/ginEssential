@@ -6,7 +6,9 @@ import (
 	"gorm.io/gorm"
 	"net/http"
 	"orangezoom.cn/ginessential/common"
+	"orangezoom.cn/ginessential/dto"
 	"orangezoom.cn/ginessential/model"
+	"orangezoom.cn/ginessential/response"
 	"orangezoom.cn/ginessential/util"
 )
 
@@ -70,42 +72,29 @@ func Login(c *gin.Context) {
 	DB.Where("telephone = ?", telephone).First(&user)
 
 	if user.ID == 0 {
-		c.JSON(http.StatusUnprocessableEntity, gin.H{"code": 422, "msg": "手机号不存在"})
+		response.Response(c, http.StatusUnprocessableEntity, http.StatusUnprocessableEntity, nil, "手机号不存在")
 		return
 	}
 
 	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 422, "msg": "密码错误"})
+		response.Response(c, http.StatusUnprocessableEntity, http.StatusUnprocessableEntity, nil, "密码错误")
 		return
 	}
 
 	token, err := common.CreateToken(user)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 500, "msg": "token 生成失败"})
+		response.Fail(c, "token 生成失败")
 		return
-
 	}
 
-	c.JSON(
-		http.StatusOK,
-		gin.H{
-			"code": 200,
-			"msg":  "登陆成功",
-			"data": gin.H{"token": token},
-		})
+	response.Success(c, gin.H{"token": token}, "登陆成功")
+
 }
 
 func UserInfo(ctx *gin.Context) {
 	user, _ := ctx.Get("user")
-	ctx.JSON(
-		http.StatusOK,
-		gin.H{
-			"code": 200,
-			"msg":  "登陆成功",
-			"data": gin.H{"user": user},
-		})
-
+	response.Success(ctx, gin.H{"user": dto.ToUserDTO(user.(model.User))}, "登陆成功")
 }
 
 func isTelephoneExist(db *gorm.DB, telephone string) bool {
