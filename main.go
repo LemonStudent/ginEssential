@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
-	"log"
 	"orangezoom.cn/ginessential/common"
 	_ "orangezoom.cn/ginessential/model"
 	"os"
@@ -11,8 +10,7 @@ import (
 
 func main() {
 	InitConfig()
-
-	log.Println(viper.GetString("database.host"))
+	common.InitRedis()
 	common.InitDB()
 	r := gin.Default()
 	r = CollectRoute(r)
